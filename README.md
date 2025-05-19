@@ -21,6 +21,7 @@ Make sure you have the following installed:
 - Required Python packages:
 ```bash
 pip install pyserial
+```
 
 ### 2. Upload Arduino Sketch
 Go to src/sketches/gesture_capture.ino
