@@ -1,23 +1,3 @@
-\[media pointer="file-service://file-NMwTfCv6VAqLTv8rYR43Cb"]
-我已经在arduino运行gesture\_capture.ino 文件，将运行mpu6050收集姿势的代码上传到esp32s3上。现在我想讲mpu6050在serial port的数据储存成csv格式，收集数据20次。我给你看一下我现在的项目Techin515里lab4文件结构，如截图所示。其中我想运行gesture\_capture\_data.py,
-"""
-Process Gesture Data - Serial to CSV Converter
-
-This script reads accelerometer data from the ESP32 serial port and
-automatically saves it to CSV files. It detects the start and end of
-gesture captures and creates a new file for each gesture.
-
-Usage:
-python process\_gesture\_data.py \[options]
-
-Options:
-\--port PORT       Serial port to use (default: auto-detect)
-\--baud BAUD       Baud rate (default: 115200)
-\--gesture NAME    Gesture name (default: "gesture")
-\--person NAME     Person name (default: "user")
-\--output DIR      Output directory (default: "data")
-"""
-
 import serial
 import serial.tools.list\_ports
 import os
@@ -49,7 +29,7 @@ return "No serial ports found."
 ```
 result = "Available ports:\n"
 for i, p in enumerate(ports):
-    result += f"{i+1}. {p.device} - {p.description}\n"
+result += f"{i+1}. {p.device} - {p.description}\n"
 return result
 ```
 
@@ -73,10 +53,10 @@ timestamps.append(i \* 10)
 
 ```
 with open(filepath, 'w', newline='') as csvfile:
-    writer = csv.writer(csvfile)
-    writer.writerow(['timestamp', 'x', 'y', 'z'])  # Header with timestamp
-    for i, (x, y, z) in enumerate(data):
-        writer.writerow([timestamps[i], x, y, z])
+writer = csv.writer(csvfile)
+writer.writerow(['timestamp', 'x', 'y', 'z'])  # Header with timestamp
+for i, (x, y, z) in enumerate(data):
+writer.writerow([timestamps[i], x, y, z])
 
 print(f"Saved {len(data)} samples to {filepath}")
 return len(data)
@@ -96,18 +76,18 @@ args = parser.parse\_args()
 ```
 # Just list ports if requested
 if args.list_ports:
-    print(list_available_ports())
-    return
+print(list_available_ports())
+return
 
 # Auto-detect port if not specified
 port = args.port
 if not port:
-    port = find_arduino_port()
-    if not port:
-        print("Error: Could not auto-detect ESP32 port.")
-        print(list_available_ports())
-        print("Please specify with --port or try --list-ports to see available options.")
-        return
+port = find_arduino_port()
+if not port:
+print("Error: Could not auto-detect ESP32 port.")
+print(list_available_ports())
+print("Please specify with --port or try --list-ports to see available options.")
+return
 
 # Ensure output directory exists
 output_dir = os.path.join(args.output, args.gesture)
@@ -116,95 +96,95 @@ ensure_directory(output_dir)
 print(f"Connecting to ESP32 on {port} at {args.baud} baud...")
 
 try:
-    # Connect to the serial port
-    ser = serial.Serial(port, args.baud, timeout=1)
-    time.sleep(2)  # Wait for connection to establish
-    
-    print("Connected! Waiting for gesture data...")
-    print("Press Ctrl+C to exit")
-    print(f"Send 'o' to start capture (will automatically stop after 1 second)")
-    
-    # Variables for data collection
-    collecting = False
-    current_data = []
-    capture_count = 0
-    
-    # Main loop
-    while True:
-        if ser.in_waiting:
+# Connect to the serial port
+ser = serial.Serial(port, args.baud, timeout=1)
+time.sleep(2)  # Wait for connection to establish
+
+print("Connected! Waiting for gesture data...")
+print("Press Ctrl+C to exit")
+print(f"Send 'o' to start capture (will automatically stop after 1 second)")
+
+# Variables for data collection
+collecting = False
+current_data = []
+capture_count = 0
+
+# Main loop
+while True:
+if ser.in_waiting:
+    try:
+        line = ser.readline().decode('utf-8').strip()
+        
+        # Check for start marker
+        if "-,-,-" in line:
+            collecting = True
+            current_data = []
+            print("Capture started...")
+            continue
+        
+        # Check for capture complete message
+        if "Capture complete" in line:
+            if current_data:
+                # Generate filename with timestamp
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                capture_count += 1
+                filename = f"output_{args.gesture}_{args.person}_{capture_count}_{timestamp}.csv"
+                filepath = os.path.join(output_dir, filename)
+                
+                # Save data to CSV with timestamps
+                save_data_to_csv(filepath, current_data)
+                current_data = []
+            else:
+                print("Warning: No data was collected during this capture.")
+            collecting = False
+            continue
+        
+        # Process data if we're collecting
+        if collecting:
             try:
-                line = ser.readline().decode('utf-8').strip()
-                
-                # Check for start marker
-                if "-,-,-" in line:
-                    collecting = True
-                    current_data = []
-                    print("Capture started...")
-                    continue
-                
-                # Check for capture complete message
-                if "Capture complete" in line:
-                    if current_data:
-                        # Generate filename with timestamp
-                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        capture_count += 1
-                        filename = f"output_{args.gesture}_{args.person}_{capture_count}_{timestamp}.csv"
-                        filepath = os.path.join(output_dir, filename)
-                        
-                        # Save data to CSV with timestamps
-                        save_data_to_csv(filepath, current_data)
-                        current_data = []
-                    else:
-                        print("Warning: No data was collected during this capture.")
-                    collecting = False
-                    continue
-                
-                # Process data if we're collecting
-                if collecting:
-                    try:
-                        # Parse x,y,z values
-                        if "," in line:
-                            x, y, z = map(float, line.split(','))
-                            current_data.append([x, y, z])
-                    except ValueError:
-                        # Skip lines that don't contain valid data
-                        pass
-            except UnicodeDecodeError:
-                # Skip binary data that can't be decoded
+                # Parse x,y,z values
+                if "," in line:
+                    x, y, z = map(float, line.split(','))
+                    current_data.append([x, y, z])
+            except ValueError:
+                # Skip lines that don't contain valid data
                 pass
-        
-        # Send commands to ESP32
-        if os.name == 'nt':  # Windows
-            import msvcrt
-            if msvcrt.kbhit():
-                key = msvcrt.getch().decode('utf-8')
-                if key == 'o':
-                    ser.write(b'o')
-                    print("Sent start command...")
-                elif key == 'p':
-                    ser.write(b'p')
-                    print("Sent stop command...")
-        else:  # Unix/Mac
-            import sys, select
-            if select.select([sys.stdin], [], [], 0)[0]:
-                key = sys.stdin.read(1)
-                if key == 'o':
-                    ser.write(b'o')
-                    print("Sent start command...")
-                elif key == 'p':
-                    ser.write(b'p')
-                    print("Sent stop command...")
-        
-        time.sleep(0.01)  # Small delay to prevent CPU hogging
-        
+    except UnicodeDecodeError:
+        # Skip binary data that can't be decoded
+        pass
+
+# Send commands to ESP32
+if os.name == 'nt':  # Windows
+    import msvcrt
+    if msvcrt.kbhit():
+        key = msvcrt.getch().decode('utf-8')
+        if key == 'o':
+            ser.write(b'o')
+            print("Sent start command...")
+        elif key == 'p':
+            ser.write(b'p')
+            print("Sent stop command...")
+else:  # Unix/Mac
+    import sys, select
+    if select.select([sys.stdin], [], [], 0)[0]:
+        key = sys.stdin.read(1)
+        if key == 'o':
+            ser.write(b'o')
+            print("Sent start command...")
+        elif key == 'p':
+            ser.write(b'p')
+            print("Sent stop command...")
+
+time.sleep(0.01)  # Small delay to prevent CPU hogging
+
 except KeyboardInterrupt:
-    print("\nExiting...")
+print("\nExiting...")
 except serial.SerialException as e:
-    print(f"Error: {e}")
+print(f"Error: {e}")
 finally:
-    if 'ser' in locals() and ser.is_open:
-        ser.close()
-        print("Serial connection closed")
+if 'ser' in locals() and ser.is_open:
+ser.close()
+print("Serial connection closed")
 ```
 
 if **name** == "**main**":
