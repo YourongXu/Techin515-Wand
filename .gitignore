@@ -1,0 +1,50 @@
+# Byte-compiled / optimized / cache files
+__pycache__/
+*.py[cod]
+*.so
+*.pyo
+*.pyd
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Arduino build output
+*.elf
+*.bin
+*.hex
+*.eep
+*.map
+
+# PlatformIO build folder (if used)
+.pio/
+.pioenvs/
+.vscode/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Edge Impulse generated files
+ei-model/
+model_parameters.h
+model_metadata.h
+
+# Data and model artifacts
+*.csv
+*.tflite
+*.eim
+*.zip
+
+# Ignore deployment builds or compiled binaries
+build/
+dist/
+*.exe
+*.out
+
+# Jupyter or notebook checkpoints (if ever used)
+.ipynb_checkpoints/
+
+# Personal settings
+.env
